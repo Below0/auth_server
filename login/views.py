@@ -1,50 +1,53 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
-from rest_framework import viewsets
-
+from django.utils.encoding import force_text
+from django.core.cache import cache
 from .models import *
-from .serializers import UserSerializer
 from .utils import *
 from .exceptions import *
-
-# Create your views here.
+from .user import *
 from login.forms import *
 
 
 def index(request):
     if request.method == 'POST':
         form = UserForm(request.POST)
+        try:
+            if form.is_valid():
+                cd = form.cleaned_data
+                try:
+                    user_id = User.objects.get(email=cd['email'])
+                except User.DoesNotExist:
+                    raise AuthFailureException()
 
-        if form.is_valid():
-            cd = form.cleaned_data
-            user_id = cache.get(cd['email'])
-            try:
-                if user_id:
-                    print('캐쉬에 존재')
-                    user_id = user_id.decode('utf-8')
-                    user_dict = dict(json.loads(user_id))
-                    pw = user_dict['pw']
-                    email = user_dict['email']
-                    name = user_dict['name']
-                else:
-                    try:
-                        user_id = User.objects.get(email=cd['email'])
-                    except User.DoesNotExist:
-                        raise AuthFailureException()
-                    print('DB에 존재')
-                    pw = user_id.pw
-                    email = user_id.email
-                    name = user_id.name
-                    user_id.save_into_cache()
-                if pw == encrypt(cd['pw']):
-                    return render(request, 'login/login.html', {'name': name, 'email': email})
+                if user_id.pw == encrypt(cd['pw'] + user_id.salt):  # check validation of account
+                    if user_id.is_active is False:
+                        raise NotEmailAuthException()
+                    response = render(request, 'login/login.html', {'name': user_id.name, 'email': user_id.email})
+                    token = create_token(user_id)
+                    cache.set(token, user_id.pk, timeout=EXPIRE_HOUR)
+                    response.set_cookie(key='token', value=token, httponly=True)
+                    return response
                 else:
                     raise AuthFailureException()
-            except AuthFailureException:
-                return render(request, 'login/index.html', {'message': '로그인 실패'})
-
+        except AuthFailureException:
+            return render(request, 'login/index.html', {'alert': '로그인 실패'})
+        except NotEmailAuthException:
+            if email_valid(user_id, request.get_host()):
+                return render(request, 'login/index.html', {'alert': '토큰 만료로 인증 메일 재송신'})
+            else:
+                return render(request, 'login/index.html', {'alert': '인증되지 않은 계정입니다.'})
     else:
-        return render(request, 'login/index.html', {})
+        token = request.COOKIES.get('token', None)
+        if token is None:
+            return render(request, 'login/index.html', {})
+        else:
+            decoded = is_valid_token(token)
+            if decoded is not None:
+                user_id = User.objects.get(pk=decoded)
+                return render(request, 'login/login.html', {'name': user_id.name, 'email': user_id.email})
+            else:
+                return render(request, 'login/index.html', {'alert': '토큰이 만료되었습니다.'})
 
 
 def register(request):
@@ -54,13 +57,33 @@ def register(request):
             cd = form.cleaned_data
             try:
                 User.objects.get(email=cd['email'])
-                return HttpResponse('CANNOT REGISTER')
+                return render(request, 'login/register.html', {'message': '이미 존재하는 이메일입니다.'})
             except User.DoesNotExist:
                 new_user = User()
-                new_user.register(cd)
-                return HttpResponse('CAN REGISTER')
+                account_register(new_user, cd)
+                email_valid(new_user, request.get_host())
+                return render(request, 'registration/send_auth_email.html', {'email': new_user.email})
     return render(request, 'login/register.html', {})
 
 
 def logout(request):
-    return render(request, 'login/index.html', {})
+    token = request.COOKIES.get('token', None)
+    if token is None:
+        return redirect('index')
+    else:
+        cache.delete(request.COOKIES['token'])
+        response = redirect('index')
+        response.delete_cookie('token')
+        return response
+
+
+def email_auth(request, uid64, token):
+    cache_token = cache.get(uid64)
+    if token == cache_token:
+        cache.delete(uid64)
+        user_id = User.objects.get(pk=force_text(urlsafe_base64_decode(uid64)))
+        user_id.is_active = True
+        user_id.save()
+        return redirect('index')
+    else:
+        return HttpResponse('만료된 세션입니다.')

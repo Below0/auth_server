@@ -77,7 +77,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'user',  # DB명
         'USER': 'root',  # 데이터베이스 계정
-        'PASSWORD': '4314538',  # 계정 비밀번호
+        'PASSWORD': 'PASSWORD',  # 계정 비밀번호
         'HOST': '127.0.0.1',  # 데이테베이스 주소(IP)
         'PORT': '3306',  # 데이터베이스 포트(보통은 3306)
     }
@@ -147,3 +147,16 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+EMAIL_HOST = 'smtp.gmail.com'
+# 메일을 호스트하는 서버
+EMAIL_PORT = '587'
+# gmail과의 통신하는 포트
+EMAIL_HOST_USER = 'abc@gmail.com'
+# 발신할 이메일
+EMAIL_HOST_PASSWORD = 'PASSWORD'
+# 발신할 메일의 비밀번호
+EMAIL_USE_TLS = True
+# TLS 보안 방법
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# 사이트와 관련한 자동응답을 받을 이메일 주소,'webmaster@localhost'

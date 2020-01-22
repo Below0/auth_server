@@ -1,4 +1,12 @@
+import random
 import hashlib
+
+import jwt
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.cache import cache
+from .exceptions import *
+from django.core.mail import EmailMessage
+from .constants import *
 
 
 def encrypt(pw):
@@ -6,12 +14,17 @@ def encrypt(pw):
     return hashlib.sha256(encoded_pw).hexdigest()
 
 
-def to_dict(name, email, pw):
-    user_dict = {
-        'name': name,
-        'email': email,
-        'pw': pw
-    }
-    return user_dict
+def create_salt():
+    letters = string.ascii_letters + string.digits
+    return ''.join(random.choice(letters) for i in range(8))
+
+
+def is_valid_token(token):
+    check_token = cache.get(token)
+    if check_token:
+        return check_token
+    else:
+        return None
+
 
 

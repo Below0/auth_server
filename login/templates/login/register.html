@@ -12,6 +12,7 @@
 
     <!-- Main css -->
     <link rel="stylesheet" href='{% static "css/style.css" %}'>
+
 </head>
 <body>
 
@@ -23,22 +24,22 @@
                 <div class="signup-content">
                     <div class="signup-form">
                         <h2 class="form-title">Sign up</h2>
-                        <form method="POST" class="register-form" id="register-form"> {% csrf_token %}
+                        <form method="POST" class="register-form validate-form" id="register-form"> {% csrf_token %}
                             <div class="form-group">
                                 <label for="name"><i class="zmdi zmdi-account material-icons-name"></i></label>
-                                <input type="text" name="name" id="name" placeholder="Your Name"/>
+                                <input type="text" name="name" id="name" placeholder="Your Name" required/>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group validate-input" data-validate="Valid email is required: ex@abc.xyz">
                                 <label for="email"><i class="zmdi zmdi-email"></i></label>
-                                <input type="email" name="email" id="email" placeholder="Your Email"/>
+                                <input type="email" name="email" id="email" placeholder="Your Email" required/>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group validate-input" data-validate="Password is required">
                                 <label for="pass"><i class="zmdi zmdi-lock"></i></label>
-                                <input type="password" name="pw" id="pass" placeholder="Password"/>
+                                <input type="password" name="pw" id="pass" placeholder="Password" required/>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group validate-input">
                                 <label for="re-pass"><i class="zmdi zmdi-lock-outline"></i></label>
-                                <input type="password" name="re_pw" id="re_pass" placeholder="Repeat your password"/>
+                                <input type="password" name="re_pw" id="re_pass" placeholder="Repeat your password" required/>
                             </div>
                             <div class="form-group form-button">
                                 <input type="submit" name="signup" id="signup" class="form-submit" value="Register"/>
@@ -55,8 +56,26 @@
 
     </div>
 
+
     <!-- JS -->
     <script src='{% static "vendor/jquery/jquery.min.js" %}'></script>
     <script src='{% static "js/main.js" %}'></script>
+    <script type="text/javascript">
+        window.onload=function(){
+        var msg = "{{ message }}"
+        if( msg != "" ){
+            alert(msg)
+        }
+
+        document.getElementById('register-form').onsubmit=function(){
+            var pw = document.getElementById("pass").value;
+            var re_pw = document.getElementById("re_pass").value;
+            if (pw != re_pw) {
+                alert('비밀번호 확인이 다릅니다.');
+                return false;
+            }
+        }
+        }
+    </script>
 </body><!-- This templates was made by Colorlib (https://colorlib.com) -->
 </html>

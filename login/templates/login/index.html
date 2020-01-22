@@ -92,6 +92,14 @@
 	<script src='{% static "vendor/countdowntime/countdowntime.js" %}'></script>
 <!--===============================================================================================-->
 	<script src='{% static "js/main.js" %}'></script>
+    <script type="text/javascript">
+        window.onload=function(){
+        var msg = "{{ alert }}"
+        if( msg != "" ){
+            alert(msg)
+        }
+        }
+    </script>
 
 </body>
 </html>
